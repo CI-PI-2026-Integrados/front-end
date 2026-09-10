@@ -16,6 +16,8 @@ const createApiSession = () => {
       id: payload.user.id,
       name: payload.user.name,
       cpf: payload.user.cpf,
+      tenantId: payload.judicialDistrict?.id || null,
+      role: payload.user.role ? { key: payload.user.role } : null,
       mustChangePassword: false,
     },
     tenant: payload.judicialDistrict
