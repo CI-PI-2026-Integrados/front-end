@@ -2,7 +2,7 @@ import { apiService } from '@/shared/infrastructure/http/apiService'
 
 class ConvictedService {
   list({ search, page = 1, limit = 25 }) {
-    // paginação na API começa em 0 ao invés de 1 :( (vibe codas fazendo cagada ai na api)
+    // Paginação começa a partir da posição 0 na API
     page = page - 1
 
     const params = new URLSearchParams({

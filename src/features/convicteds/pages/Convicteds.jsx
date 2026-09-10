@@ -1,14 +1,6 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import { FileText, Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
-import { toast } from 'sonner'
-
-import { convictedService } from '@/features/convicteds/services/convictedService'
-import { useSession } from '@/features/authentication/context/sessionContext'
-import { ApenadoCreateDialog } from '@/features/convicteds/components/ConvictedCreateDialog'
-import { ApenadoDeactivateDialog } from '@/features/convicteds/components/ConvictedDeactivateDialog'
-import { ApenadoDocumentsDialog } from '@/features/convicteds/components/ConvictedDocumentsDialog'
-import { ApenadoEditDialog } from '@/features/convicteds/components/ConvictedEditDialog'
-import { useApenados } from '@/features/convicteds/hooks/mockedUseConvicteds'
+import { FileText, Pencil, Search, Trash2, Users } from 'lucide-react'
+import { useState } from 'react'
+import { useConvictedList } from '@/features/convicteds/hooks/useConvictedList'
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import { Button } from '@/shared/components/ui/button'
 import { DataTableCard } from '@/shared/components/data-display/DataTableCard'
@@ -16,7 +8,6 @@ import { EmptyTableState } from '@/shared/components/data-display/EmptyTableStat
 import { FiltersPanel } from '@/shared/components/data-display/FiltersPanel'
 import { PageHeader } from '@/shared/components/data-display/PageHeader'
 import { Input } from '@/shared/components/ui/input'
-import { cn } from '@/shared/lib/utils'
 import {
   Table,
   TableBody,
@@ -25,68 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table'
-import { HeaderButton } from '@/shared/components/buttons/HeaderButton'
-
-const ITEMS_PER_PAGE = 10
-
-function maskCPF(cpf) {
-  return (cpf || '').replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, '***.$2.$3-**')
-}
-
-function SitTrabalhista({ sit }) {
-  const map = {
-    working_formal: 'Trabalho Registrado',
-    working_informal: 'Trabalho Informal',
-    not_working: 'Não Trabalha',
-  }
-  const normalized = map[sit] || 'Não Trabalha'
-
-  const variants = {
-    'Trabalho Registrado':
-      'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-400 dark:ring-emerald-800',
-    'Trabalho Informal':
-      'bg-blue-100 text-blue-700 ring-blue-200 dark:bg-blue-950/80 dark:text-blue-400 dark:ring-blue-800',
-    'Não Trabalha':
-      'bg-gray-100 text-gray-600 ring-gray-200 dark:bg-gray-800/80 dark:text-gray-400 dark:ring-gray-700',
-  }
-
-  return (
-    <span
-      className={cn(
-        'inline-flex h-6.5 w-36 items-center justify-center rounded-md px-2.5 text-center text-xs font-semibold whitespace-nowrap ring-1 transition-all select-none',
-        variants[normalized] || 'bg-muted text-muted-foreground ring-border dark:bg-muted/50'
-      )}
-    >
-      {normalized}
-    </span>
-  )
-}
 
 export default function Convicteds() {
   const [search, setSearch] = useState('')
-  const [list, setList] = useState([])
-  const [actualPage, setActualPage] = useState(1)
-  const [totalItems, setTotalItems] = useState(0)
-  const [lastPage, setLastPage] = useState(1)
-
-  const loadList = useCallback(async () => {
-    return convictedService.list({
-      search,
-      page: actualPage,
-    })
-  }, [search, actualPage])
-
-  useEffect(() => {
-    const load = async () => {
-      const response = await loadList()
-
-      setList(response.content)
-      setTotalItems(response.total_elements)
-      setLastPage(response.total_pages)
-    }
-
-    load()
-  }, [loadList])
+  const [page, setPage] = useState(1)
+  const { error, isLoading, items, totalItems, totalPages } = useConvictedList({ search, page })
 
   /* Precisa ser retrabalhado e integrado a API */
   // const { apenados, atualizar } = useApenados(comarcaId)
@@ -171,7 +105,7 @@ export default function Convicteds() {
             value={search}
             onChange={(event) => {
               setSearch(event.target.value)
-              setActualPage(1)
+              setPage(1)
             }}
             className="pl-9"
           />
@@ -182,15 +116,13 @@ export default function Convicteds() {
         title="Apenados Cadastrados"
         count={totalItems}
         icon={<Users className="text-muted-foreground size-5" />}
-        /* vibe codas - Ao chegar na última página o footer (e também o botão de listar página não é encontrado), tive mockar isEmpty = false para evitar esse bug */
-        // isEmpty={list.length === 0}
-        isEmpty={false}
+        isLoading={isLoading}
+        isEmpty={Boolean(error) || items.length === 0}
         emptyState={
           <EmptyTableState
             title={
-              actualPage > 1
-                ? 'Nenhum apenado encontrado nesta página'
-                : 'Nenhum apenado encontrado'
+              error ||
+              (page > 1 ? 'Nenhum apenado encontrado nesta página' : 'Nenhum apenado encontrado')
             }
             description={
               search
@@ -202,20 +134,20 @@ export default function Convicteds() {
         footer={
           <div className="text-muted-foreground flex flex-col gap-3 border-t px-4 py-3.5 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <span>
-              Página {actualPage} de {lastPage}
+              Página {page} de {totalPages}
             </span>
             <div className="flex w-full justify-between gap-1.5 sm:w-auto sm:justify-start">
               <Button
                 variant="outline"
                 size="xs"
-                onClick={() => setActualPage(actualPage - 1)}
-                disabled={actualPage === 1}
+                onClick={() => setPage((currentPage) => currentPage - 1)}
+                disabled={page === 1}
               >
                 Anterior
               </Button>
               <div className="hidden gap-1.5 sm:flex">
                 <Button size="xs" disabled={true}>
-                  {actualPage}
+                  {page}
                 </Button>
                 {/* ele cria um botão para cada página existente, se houver 100 páginas, então 100 botões vão ser criados :( componente criado totalmente via vibe code e que não foi testado  */}
                 {/* {Array.from({ length: lastPage }, (_, i) => i + 1).map((page) => (
@@ -232,8 +164,8 @@ export default function Convicteds() {
               <Button
                 variant="outline"
                 size="xs"
-                onClick={() => setActualPage(actualPage + 1)}
-                disabled={actualPage === lastPage}
+                onClick={() => setPage((currentPage) => currentPage + 1)}
+                disabled={page === totalPages}
               >
                 Próxima
               </Button>
@@ -283,36 +215,36 @@ export default function Convicteds() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {list.map((item) => {
+              {items.map((item) => {
                 return (
                   <TableRow key={item.id} className="hover:bg-muted/50 border-b transition-colors">
                     <TableCell className="w-16 px-4 py-3">
                       <Avatar className="size-9 shrink-0">
-                        <AvatarImage src={item.photo_url} alt={item.name} />
+                        <AvatarImage src={item.photoUrl || undefined} alt={item.fullName} />
                         <AvatarFallback className="text-xs font-semibold">
-                          {(item.name || 'A').charAt(0).toUpperCase()}
+                          {(item.fullName || 'A').charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                     </TableCell>
                     <TableCell className="min-w-36 px-4 py-3.5">
-                      <p className="text-foreground font-semibold">{item.name}</p>
+                      <p className="text-foreground font-semibold">{item.fullName}</p>
                       <p className="text-muted-foreground mt-0.5 text-xs">{item.cpf}</p>
                     </TableCell>
                     <TableCell className="text-muted-foreground w-44 px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <span
                           className="text-foreground block max-w-36 truncate font-medium"
-                          title={item.main_process_number}
+                          title={item.mainProcessNumber}
                         >
-                          {item.main_process_number}
+                          {item.mainProcessNumber}
                         </span>
-                        {item.same_process_convicted_count > 1 && (
+                        {item.sameProcessConvictedCount > 1 && (
                           <span
-                            title={`${item.same_process_convicted_count} apenados vinculados a este processo`}
+                            title={`${item.sameProcessConvictedCount} apenados vinculados a este processo`}
                             className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-950/80 dark:text-blue-400"
                           >
                             <Users className="size-3" />
-                            <span>{item.same_process_convicted_count}</span>
+                            <span>{item.sameProcessConvictedCount}</span>
                           </span>
                         )}
                       </div>
