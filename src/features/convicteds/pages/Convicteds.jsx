@@ -8,6 +8,7 @@ import { EmptyTableState } from '@/shared/components/data-display/EmptyTableStat
 import { FiltersPanel } from '@/shared/components/data-display/FiltersPanel'
 import { PageHeader } from '@/shared/components/data-display/PageHeader'
 import { Input } from '@/shared/components/ui/input'
+import { formatAddress } from '../utils/convictedUtils'
 import {
   Table,
   TableBody,
@@ -16,6 +17,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table'
+
+const employmentStatusLabels = {
+  FORMAL_WORK: 'Trabalho registrado',
+  INFORMAL_WORK: 'Trabalho informal',
+  UNEMPLOYED: 'Não trabalha',
+}
 
 export default function Convicteds() {
   const [search, setSearch] = useState('')
@@ -188,7 +195,7 @@ export default function Convicteds() {
         </div> */}
 
         <div className="overflow-x-auto md:block">
-          <Table className="w-full min-w-[700px] text-sm">
+          <Table className="w-full min-w-175 text-sm">
             <TableHeader>
               <TableRow className="bg-secondary border-y">
                 <TableHead className="text-foreground w-16 px-4 py-3 text-left text-xs font-semibold">
@@ -216,6 +223,8 @@ export default function Convicteds() {
             </TableHeader>
             <TableBody>
               {items.map((item) => {
+                const address = formatAddress(item.address)
+
                 return (
                   <TableRow key={item.id} className="hover:bg-muted/50 border-b transition-colors">
                     <TableCell className="w-16 px-4 py-3">
@@ -254,12 +263,12 @@ export default function Convicteds() {
                     </TableCell>
                     <TableCell
                       className="text-muted-foreground max-w-56 min-w-44 truncate px-4 py-3.5"
-                      title={item.address}
+                      title={address || undefined}
                     >
-                      {/* {a.address} */}-
+                      {address || '-'}
                     </TableCell>
                     <TableCell className="w-44 px-4 py-3.5 whitespace-nowrap">
-                      {/* <SitTrabalhista sit={} /> */}-
+                      {employmentStatusLabels[item.employmentStatus] || '-'}
                     </TableCell>
                     <TableCell className="w-28 px-4 py-3.5">
                       <div className="flex items-center gap-1">
